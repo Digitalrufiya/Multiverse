@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MultiVerse (MVRS) — Web Wallet</title>
+
+<!-- Chart.js for charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- QRCode library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
+<style>
+:root{
+  --bg:#071029; --card:#0f1b2b; --muted:#9fb0d1; --accent:#6be6b8;
+  --panel:#0c2030; --btn:#4CAF50; --danger:#f45b69;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;
+  background:linear-gradient(180deg,#03101b,#071029); color:#e6f0fb;-webkit-font-smoothing:antialiased;}
+.container{max-width:1100px;margin:18px auto;padding:12px}
+.header{display:flex;gap:14px;align-items:center}
+.logo{width:76px;height:76px;border-radius:12px;background:#071a27;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.logo img{width:100%;height:100%;object-fit:cover}
+.title h1{margin:0;font-size:20px} .title p{margin:4px 0 0;color:var(--muted);font-size:13px}
+
+.grid{display:grid;grid-template-columns:1fr 420px;gap:16px;margin-top:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+.small{color:var(--muted);font-size:13px}
+.addr{font-family:monospace;background:linear-gradient(90deg,#031827,transparent);padding:8px;border-radius:8px;display:inline-block}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button{background:var(--btn);color:#05261b;border:none;padding:10px 12px;border-radius:8px;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+input[type="text"],input[type="number"],textarea{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px;border-radius:8px;color:inherit}
+.tx-list{max-height:360px;overflow:auto;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.tx{background:var(--panel);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.02)}
+.meta{color:var(--muted);font-size:12px;margin-top:6px}
+.footer{margin-top:18px;color:var(--muted);text-align:center;font-size:13px}
+.chart-wrap{display:flex;gap:12px;align-items:center}
+.kv{display:flex;flex-direction:column;align-items:flex-start}
+.kv .v{font-size:18px;font-weight:700;margin-top:6px}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+.warning{background:#2b0b10;padding:10px;border-radius:8px;border:1px solid rgba(255,80,80,0.08);color:#ffb6b6}
+.controls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.small-btn{padding:8px 10px;font-size:14px}
+.file{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo"><img id="logo" src="https://ik.imagekit.io/ttbbg9ocv/ChatGPT%20Image%20Dec%2011,%202025,%2009_34_05%20PM.png" alt="MVRS"></div>
+    <div class="title">
+      <h1>MultiVerse (MVRS) Wallet</h1>
+      <p>Web wallet • Create / Recover / Export • Local-only</p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Left: main controls and tx -->
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="small">Wallet Address</div>
+            <div class="addr" id="walletAddress">(none)</div>
+            <div class="note">Address is derived from your secret seed. Keep seed safe.</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Balance</div>
+            <div class="v" id="balanceDisplay">0 MVRS</div>
+            <div class="small" style="margin-top:6px">Seed status: <span id="seedStatus" class="small">Not loaded</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" class="controls-row">
+          <button onclick="openCreate()">Create Wallet</button>
+          <button class="ghost" onclick="openRecover()">Recover Wallet</button>
+          <button class="ghost" onclick="exportWallet()">Export Wallet</button>
+          <input id="importFile" type="file" accept="application/json" style="display:inline-block" onchange="importWalletFile(event)">
+        </div>
+
+        <div style="margin-top:12px" class="controls">
+          <input id="sendAmount" type="number" placeholder="Amount (MVRS)" />
+          <input id="sendTo" type="text" placeholder="Recipient address" />
+          <button onclick="doSend()">Send</button>
+          <button class="ghost" onclick="openReceive()">Receive</button>
+        </div>
+
+        <div class="note" style="margin-top:10px">
+          <strong>Security:</strong> This wallet stores everything locally in your browser. <b>Back up your seed</b>.
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">Transaction History</h3>
+          <div class="small">Saved locally</div>
+        </div>
+        <div class="tx-list" id="txList">
+          <!-- transactions -->
+        </div>
+        <div class="note">Tip: Export wallet to back up your address, balance and history.</div>
+      </div>
+    </div>
+
+    <!-- Right: charts & QR & seed -->
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="small">Market (simulated)</div>
+            <div class="v" id="priceDisplay">$0.00</div>
+            <div class="small" id="changeDisplay">0.00%</div>
+          </div>
+          <div style="width:200px">
+            <canvas id="priceChart" width="200" height="120"></canvas>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="ghost" onclick="simulateTick()">Simulate Price Tick</button>
+          <button class="ghost" onclick="toggleAutoPrice()"><span id="autoPriceLabel">Start</span> Live</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h4 style="margin:0">Receive / QR</h4>
+          <div class="small">Scan to pay</div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap">
+          <div id="qr" style="width:160px;height:160px;background:#071e2d;border-radius:8px;display:flex;align-items:center;justify-content:center"></div>
+          <div style="flex:1">
+            <div class="small">Address</div>
+            <div class="addr" id="qrAddress">-</div>
+            <div style="margin-top:8px" class="controls">
+              <button class="small-btn ghost" onclick="copyAddress()">Copy</button>
+              <button class="small-btn" onclick="downloadQR()">Download QR</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h4 style="margin:0">Seed / Backup</h4>
+        <div class="note">You can create a new 12-word seed or recover from an existing seed. **Keep it secret.**</div>
+        <div style="margin-top:8px" class="controls">
+          <button onclick="createSeed()">Create Seed</button>
+          <button class="ghost" onclick="recoverFromPrompt()">Recover from Seed</button>
+          <button class="ghost" onclick="showSeed()">Show Seed</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="small">MVRS Web Wallet • Local only • Use for testing / small amounts • Keep your seed safe</div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div id="modalRoot" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:9999">
+  <div id="modalCard" style="background:#071827;padding:18px;border-radius:12px;max-width:520px;width:92%;color:#eaf5ff"></div>
+</div>
+
+<script>
+/* ===== MVRS Web Wallet — single-file app =====
+   - deterministic address: address = 'MVRS' + prefix(hex(sha256(seed))) (simple)
+   - seed: 12-word generated from small english list (256 words) - demo only
+   - localStorage keys used below
+*/
+
+// ---------- small wordlist (256 words) - demo mnemonic (NOT BIP39, but ok for prototype)
+const WORDS = ("abandon ability able about above absent absorb abstract absurd abuse access accident " +
+"account accuse achieve acid acoustic acquire across act action actor actress actual adapt " +
+"add addict address adjust admit adult advance advice aerobic affair afford afraid again age " +
+"agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost " +
+"alone alpha already also alter always amateur amaze among amount amuse analyst anchor ancient anger " +
+"angle angry animal ankle announce annual another answer anticipate anxiety any apart apology " +
+"appear apple april arch arctic area arena argue arm armed armor army around arrange arrest arrive " +
+"arrow art article artist ash ask aspect aspire asset assist assume athlete atom attack attend " +
+"attitude attract auction audit august aunt author auto autumn average avian avoid awake aware " +
+"award aware away awesome awful axis baby bachelor back badge bag balance balcony ball bamboo band " +
+"bank banner bar barely bargain barrel base basic basket bat bath battery battle beach bean " +
+"beauty because become bed beef before begin behave being belief bell below belt bench benefit " +
+"best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade " +
+"blame blanket blast blaze bleed blend bless blind blink block blonde blood blossom blow blue blur " +
+"blunt board boast boat body bog bold bolt bomb bone bonus book boost border bore borough borrow " +
+"boss both bother bottle bottom bounce bound bow bowl box boy bracket brain brand brass brave brazil " +
+"bread break breathe brick bride bridge brief bright brilliant bring brisk broad broken bronze brook " +
+"brother brought brown brush brutal bubble budget buffalo build bulb bulk bullet bundle bunker burden " +
+"burger burst bury bus business busy butter button buyer buzz cabin cable cactus cafe cage cake " +
+"calculate call calm camera camp can canal cancel candy cane cannon canoe canvas canyon capable " +
+"capital captain car carbon card cargo carnival carol carry cart case cash casino castle casual cat").split(" ");
+
+// ---------- storage keys
+const KEY = "mvrs_v2_data";
+
+// state
+let state = {
+  seed: null,           // string of words
+  address: null,
+  balance: 0,
+  transactions: [],     // {type,amount,to,time}
+  price: 0.12,          // simulated USD price
+  priceHistory: []
+};
+
+// utility: sha256 (async)
+async function sha256hex(msg){
+  const enc = new TextEncoder();
+  const data = enc.encode(msg);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  const bytes = new Uint8Array(hash);
+  return Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// derive simple address
+async function deriveAddress(seed){
+  const h = await sha256hex(seed);
+  return "MVRS" + h.slice(0,8).toUpperCase();
+}
+
+// save / load
+function saveState(){
+  localStorage.setItem(KEY, JSON.stringify(state));
+}
+function loadState(){
+  const j = localStorage.getItem(KEY);
+  if(j) {
+    try { Object.assign(state, JSON.parse(j)); } catch(e){ console.warn("bad state"); }
+  }
+}
+
+// UI helpers
+function showModal(html){
+  const root = document.getElementById("modalRoot");
+  const card = document.getElementById("modalCard");
+  card.innerHTML = html;
+  root.style.display = "flex";
+}
+function closeModal(){
+  document.getElementById("modalRoot").style.display = "none";
+}
+
+// init UI
+async function refreshUI(){
+  loadState();
+  document.getElementById("walletAddress").textContent = state.address || "(none)";
+  document.getElementById("balanceDisplay").textContent = state.balance + " MVRS";
+  document.getElementById("balanceDisplay").dataset.val = state.balance;
+  document.getElementById("seedStatus").textContent = state.seed ? "Loaded" : "Not loaded";
+  renderTxs();
+  await updatePriceUI();
+  await renderQR();
+  saveState();
+}
+
+// generate mnemonic (12 words)
+function generateSeed(){
+  const words = [];
+  for(let i=0;i<12;i++){
+    const idx = Math.floor(Math.random()*WORDS.length);
+    words.push(WORDS[idx]);
+  }
+  return words.join(" ");
+}
+
+// Create wallet flow
+async function openCreate(){
+  const seed = generateSeed();
+  const html = `
+    <h3>Create new wallet</h3>
+    <div class="note">Write down these 12 words and keep them secret. Anyone with them can access your wallet.</div>
+    <textarea style="width:100%;height:120px;margin-top:8px;padding:8px;background:#05121a;border-radius:8px;border:1px solid rgba(255,255,255,0.04);color:#eaf5ff">${seed}</textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="confirmCreate('${encodeURIComponent(seed)}')">Confirm & Use</button>
+      <button class="ghost" onclick="closeModal()">Close</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+// Confirm create
+async function confirmCreate(encSeed){
+  const seed = decodeURIComponent(encSeed);
+  state.seed = seed;
+  state.address = await deriveAddress(seed);
+  state.balance = 0;
+  state.transactions = [];
+  saveState();
+  closeModal();
+  await refreshUI();
+  alert("Wallet created — save your seed safely.");
+}
+
+// Recover wallet flow
+function openRecover(){
+  const html = `
+    <h3>Recover wallet from seed</h3>
+    <div class="note">Paste your 12-word seed phrase below.</div>
+    <textarea id="recoverSeed" style="width:100%;height:120px;margin-top:8px;padding:8px;background:#05121a;border-radius:8px;border:1px solid rgba(255,255,255,0.04);color:#eaf5ff"></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="confirmRecover()">Recover</button>
+      <button class="ghost" onclick="closeModal()">Close</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+async function confirmRecover(){
+  const seed = document.getElementById("recoverSeed").value.trim();
+  if(!seed) return alert("Enter seed");
+  state.seed = seed;
+  state.address = await deriveAddress(seed);
+  // keep existing balance/txs if any — or reset? We'll set to 0; user may import JSON after
+  state.balance = 0;
+  state.transactions = [];
+  saveState();
+  closeModal();
+  await refreshUI();
+  alert("Recovered address: " + state.address + ". If you have backup JSON, import it to restore balance and history.");
+}
+
+// show seed (dangerous UI)
+function showSeed(){
+  if(!state.seed) return alert("No seed loaded.");
+  const html = `<h3>Your seed phrase</h3>
+    <div class="note">Keep it secret. Do not share.</div>
+    <textarea style="width:100%;height:120px;margin-top:8px;padding:8px;background:#05121a;border-radius:8px;border:1px solid rgba(255,255,255,0.04);color:#eaf5ff">${state.seed}</textarea>
+    <div style="margin-top:8px;display:flex;justify-content:flex-end">
+      <button onclick="closeModal()">Close</button>
+    </div>`;
+  showModal(html);
+}
+
+// send
+function doSend(){
+  const amt = Number(document.getElementById("sendAmount").value);
+  const to = document.getElementById("sendTo").value.trim();
+  if(!to || !amt || amt <= 0) return alert("Enter valid recipient and amount");
+  if(amt > state.balance) return alert("Insufficient balance");
+  state.balance -= amt;
+  state.transactions.unshift({type:"send", amount:amt, to, time:new Date().toLocaleString()});
+  saveState();
+  refreshUI();
+  alert("Recorded send: " + amt + " MVRS to " + to);
+  document.getElementById("sendAmount").value = ""; document.getElementById("sendTo").value = "";
+}
+
+// receive modal (manual)
+function openReceive(){
+  const html = `<h3>Receive MVRS</h3>
+    <div class="note">Give your address (or show QR) to sender. To add funds locally use 'Add Received' below.</div>
+    <div style="margin-top:8px">
+      <div class="small">Address</div>
+      <div class="addr">${state.address || "(none)"}</div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+      <input id="recvAmt" type="number" placeholder="Amount received" />
+      <button onclick="confirmReceive()">Add Received</button>
+      <button class="ghost" onclick="closeModal()">Close</button>
+    </div>`;
+  showModal(html);
+}
+function confirmReceive(){
+  const x = Number(document.getElementById("recvAmt").value);
+  if(!x || x <= 0) return alert("Enter amount");
+  state.balance += x;
+  state.transactions.unshift({type:"receive", amount:x, to:state.address, time:new Date().toLocaleString()});
+  saveState();
+  closeModal();
+  refreshUI();
+  alert("Received " + x + " MVRS (local record).");
+}
+
+// render txs
+function renderTxs(){
+  const el = document.getElementById("txList");
+  el.innerHTML = "";
+  if(!state.transactions || state.transactions.length === 0){
+    el.innerHTML = '<div class="tx">No transactions yet.</div>';
+    return;
+  }
+  for(const t of state.transactions){
+    const d = document.createElement("div");
+    d.className = "tx";
+    d.innerHTML = `<div><strong>${t.type.toUpperCase()}</strong> • ${t.amount} MVRS</div>
+                   <div class="meta">${t.time}${t.to ? " • To: " + t.to : ""}</div>`;
+    el.appendChild(d);
+  }
+}
+
+// QR
+async function renderQR(){
+  const target = document.getElementById("qr");
+  target.innerHTML = "";
+  const addr = state.address || "MVRS-none";
+  document.getElementById("qrAddress").textContent = addr;
+  try {
+    await QRCode.toCanvas(addr, {width:150, margin:1}, function (err, canvas) {
+      if(err){ console.error(err); target.textContent = addr; return; }
+      target.appendChild(canvas);
+    });
+  } catch(e){
+    target.textContent = addr;
+  }
+}
+function copyAddress(){
+  if(!state.address) return alert("No address");
+  navigator.clipboard?.writeText(state.address).then(()=>alert("Copied address"));
+}
+function downloadQR(){
+  const canv = document.querySelector("#qr canvas");
+  if(!canv) return alert("QR not ready");
+  const url = canv.toDataURL("image/png");
+  const a = document.createElement("a");
+  a.href = url; a.download = (state.address || "mvrs_qr") + ".png";
+  a.click();
+}
+
+// export / import wallet JSON
+function exportWallet(){
+  const out = {seed: state.seed || null, address: state.address, balance: state.balance, transactions: state.transactions};
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = (state.address || "mvrs") + "_wallet.json"; a.click();
+  URL.revokeObjectURL(url);
+}
+function importWalletFile(e){
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = function(ev){
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(data.seed) state.seed = data.seed;
+      if(data.address) state.address = data.address;
+      if(typeof data.balance === "number") state.balance = data.balance;
+      if(Array.isArray(data.transactions)) state.transactions = data.transactions;
+      saveState(); refreshUI(); alert("Imported wallet JSON");
+    } catch(err){ alert("Invalid file"); }
+  };
+  r.readAsText(f);
+}
+
+// import helper wrapper for older duplicate name
+window.importWalletFile = importWalletFile;
+
+// create seed quick (button)
+async function createSeed(){
+  const s = generateSeed();
+  state.seed = s;
+  state.address = await deriveAddress(s);
+  state.balance = 0; state.transactions = [];
+  saveState(); await refreshUI();
+  showModal(`<h3>Write down your seed</h3>
+    <div class="note">Store this 12-word seed safely. It is the only way to recover your wallet.</div>
+    <textarea style="width:100%;height:120px;margin-top:8px">${s}</textarea>
+    <div style="display:flex;justify-content:f
