@@ -1,202 +1,356 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>MultiVerse (MVRS) Wallet</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #1e1e2f;
-        color: #ffffff;
-        text-align: center;
-        margin: 0;
-        padding: 0;
-    }
-    header {
-        background-color: #2e2e4f;
-        padding: 20px;
-    }
-    header img {
-        width: 80px;
-        height: 80px;
-        margin-bottom: 10px;
-    }
-    main {
-        padding: 20px;
-    }
-    .wallet-info {
-        background-color: #2e2e4f;
-        padding: 15px;
-        border-radius: 10px;
-        display: inline-block;
-        margin-top: 20px;
-        min-width: 250px;
-    }
-    .wallet-info p {
-        margin: 5px 0;
-        font-size: 18px;
-    }
-    .buttons {
-        margin-top: 20px;
-    }
-    button {
-        padding: 10px 20px;
-        margin: 5px;
-        font-size: 16px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        background-color: #4caf50;
-        color: white;
-    }
-    button:hover {
-        background-color: #45a049;
-    }
-    .transactions {
-        margin-top: 30px;
-        text-align: left;
-        display: inline-block;
-        max-width: 500px;
-        width: 90%;
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #555;
-        border-radius: 10px;
-        background-color: #2e2e4f;
-        padding: 10px;
-    }
-    .transactions h3 {
-        text-align: center;
-        margin-top: 0;
-    }
-    .transactions ul {
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
-    }
-    .transactions li {
-        background-color: #3e3e6f;
-        margin: 5px 0;
-        padding: 10px;
-        border-radius: 5px;
-    }
-    footer {
-        margin-top: 40px;
-        font-size: 14px;
-        color: #aaa;
-    }
-    input[type="number"], input[type="text"] {
-        padding: 8px;
-        margin: 5px;
-        border-radius: 5px;
-        border: none;
-        width: 150px;
-    }
+  :root{
+    --bg:#0f1226; --card:#17182b; --muted:#9aa0c7; --accent:#6be6b8;
+    --panel:#1f2338; --btn:#4CAF50; --danger:#e06c75;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+    background:linear-gradient(180deg,#0b0d16 0%, #111322 100%);
+    color:#e6eef8;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    background:linear-gradient(90deg, rgba(18,20,38,1) 0%, rgba(34,37,70,1) 100%);
+    padding:18px 14px;
+    display:flex;
+    gap:14px;
+    align-items:center;
+  }
+  .logo{
+    width:68px;height:68px;border-radius:12px;flex:0 0 68px;
+    background:#222;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  .logo img{width:100%;height:100%;object-fit:cover;display:block}
+  .hdr-title{line-height:1}
+  .hdr-title h1{margin:0;font-size:20px}
+  .hdr-title p{margin:3px 0 0;color:var(--muted);font-size:13px}
+  main{padding:18px;display:flex;flex-direction:column;align-items:center;gap:16px}
+  .grid{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;max-width:980px}
+  .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);min-width:240px}
+  .wallet-card{min-width:320px}
+  .wallet-card p{margin:6px 0;color:var(--muted)}
+  .addr{font-family:monospace;background:linear-gradient(90deg,#0a0f1a,transparent);padding:8px;border-radius:8px;display:inline-block}
+  .balance{font-size:22px;margin-top:8px}
+  .controls{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .inline{display:flex;gap:8px;align-items:center}
+  input[type="text"], input[type="number"], input[type="file"]{
+    background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px;color:inherit;border-radius:8px;
+    min-width:120px;
+  }
+  button{
+    background:var(--btn);color:#042014;border:none;padding:9px 12px;border-radius:8px;font-weight:600;cursor:pointer;
+  }
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  .transactions{width:100%;max-width:640px;min-width:280px}
+  .tx-list{max-height:320px;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+  .tx{background:var(--panel);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.02)}
+  .tx .meta{color:var(--muted);font-size:12px;margin-top:6px}
+  footer{padding:14px;text-align:center;color:var(--muted);font-size:13px}
+  .small{font-size:13px;color:var(--muted)}
+  @media(max-width:720px){
+    header{padding:12px}
+    .grid{flex-direction:column;align-items:stretch}
+  }
 </style>
 </head>
 <body>
 <header>
-    <img src="https://ik.imagekit.io/ttbbg9ocv/ChatGPT%20Image%20Dec%2011,%202025,%2009_34_05%20PM.png" alt="MVRS Coin Logo">
+  <div class="logo">
+    <img id="logoImg" src="https://ik.imagekit.io/ttbbg9ocv/ChatGPT%20Image%20Dec%2011,%202025,%2009_34_05%20PM.png" alt="MVRS Logo">
+  </div>
+  <div class="hdr-title">
     <h1>MultiVerse (MVRS) Wallet</h1>
-    <p>Version 1.0</p>
+    <p>Version 1.0 — Web Wallet (Local)</p>
+  </div>
 </header>
 
 <main>
-    <div class="wallet-info">
-        <p><strong>Wallet Address:</strong> <span id="walletAddress">MVRS123456</span></p>
-        <p><strong>Balance:</strong> <span id="walletBalance">0 MVRS</span></p>
+  <div class="grid">
+    <!-- Wallet card -->
+    <div class="card wallet-card">
+      <p class="small">Wallet Address</p>
+      <div class="inline">
+        <div class="addr" id="walletAddress">(none)</div>
+        <input type="text" id="setAddressInput" placeholder="Paste address (optional)">
+        <button class="ghost" onclick="setAddress()">Set Address</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <p class="small">Balance</p>
+        <div class="balance" id="walletBalance">0 MVRS</div>
+      </div>
+
+      <div class="controls">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="number" id="sendAmount" placeholder="Amount">
+          <input type="text" id="sendAddress" placeholder="Recipient address">
+          <button onclick="sendCoins()">Send</button>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+          <button onclick="receiveCoins()">Receive</button>
+          <button class="ghost" onclick="simulateMine()">Simulate Mine</button>
+
+          <label class="small" style="margin-left:8px">
+            <input id="autoSimToggle" type="checkbox" onchange="toggleAutoSim()"> Auto-simulate
+          </label>
+          <input id="autoSimInterval" type="number" value="5" min="1" style="width:64px" />
+          <span class="small">sec</span>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="ghost" onclick="exportWallet()">Export Wallet</button>
+          <input id="importFile" type="file" accept="application/json" onchange="importWalletFile(event)" />
+          <button class="ghost" onclick="resetWallet()">Reset Wallet</button>
+        </div>
+
+        <p class="small" style="margin-top:8px">Tip: Use Export to save JSON and Import on another device to restore.</p>
+      </div>
     </div>
 
-    <div class="buttons">
-        <input type="number" id="sendAmount" placeholder="Amount">
-        <input type="text" id="sendAddress" placeholder="Recipient Address">
-        <button onclick="sendCoins()">Send</button>
-        <button onclick="receiveCoins()">Receive</button>
+    <!-- Transactions -->
+    <div class="card transactions" style="flex:1">
+      <h3 style="margin:6px 0 10px">Transaction History</h3>
+      <div class="tx-list" id="transactionList">
+        <!-- items inserted here -->
+      </div>
     </div>
-
-    <div class="transactions">
-        <h3>Transaction History</h3>
-        <ul id="transactionList">
-            <li>No transactions yet.</li>
-        </ul>
-    </div>
-
-    <div class="instructions" style="margin-top:30px;">
-        <h3>Instructions</h3>
-        <p>To mine MVRS coins, run your Termux node and use your wallet address above to receive mined coins.</p>
-        <p>Use the "send" command in Termux to transfer coins to other wallet addresses.</p>
-    </div>
+  </div>
 </main>
 
 <footer>
-    &copy; 2025 MultiVerse Blockchain
+  <div class="small">This wallet stores data locally in your browser (localStorage). Do <b>Export Wallet</b> to back up.</div>
 </footer>
 
 <script>
-let balance = 0;
-let transactions = [];
+/*
+  MVRS Web Wallet (client-only)
+  - persistent via localStorage
+  - send / receive / simulate mining
+  - export / import JSON
+*/
 
-function addTransaction(amount, type, address = '') {
-    const timestamp = new Date().toLocaleString();
-    let tx = `${type}: ${amount} MVRS | ${timestamp}`;
-    if(address) tx += ` | Address: ${address}`;
-    transactions.unshift(tx); // newest first
-    renderTransactions();
+// ---- Storage keys
+const KEY_ADDR = "mvrs_addr_v1";
+const KEY_BAL = "mvrs_bal_v1";
+const KEY_TX = "mvrs_tx_v1";
+const KEY_AUTO = "mvrs_auto_v1";
+
+// ---- App state
+let walletAddress = localStorage.getItem(KEY_ADDR) || generateAddress();
+let balance = Number(localStorage.getItem(KEY_BAL) || 0);
+let transactions = JSON.parse(localStorage.getItem(KEY_TX) || "[]");
+let autoSim = false;
+let autoSimTimer = null;
+
+// ---- UI refs
+const addrEl = document.getElementById("walletAddress");
+const balEl = document.getElementById("walletBalance");
+const txListEl = document.getElementById("transactionList");
+const autoToggleEl = document.getElementById("autoSimToggle");
+const autoIntervalEl = document.getElementById("autoSimInterval");
+
+// init
+addrEl.textContent = walletAddress;
+balEl.textContent = balance + " MVRS";
+renderTransactions();
+autoToggleEl.checked = false;
+
+// ---------- helpers ----------
+function generateAddress(){
+  // simple local address generator (not secure)
+  const n = Math.floor(Math.random()*900000)+100000;
+  const addr = "MVRS" + n;
+  localStorage.setItem(KEY_ADDR, addr);
+  return addr;
 }
 
-function renderTransactions() {
-    const list = document.getElementById('transactionList');
-    list.innerHTML = '';
-    if(transactions.length === 0) {
-        list.innerHTML = '<li>No transactions yet.</li>';
-    } else {
-        transactions.forEach(tx => {
-            const li = document.createElement('li');
-            li.textContent = tx;
-            list.appendChild(li);
-        });
+function saveAll(){
+  localStorage.setItem(KEY_ADDR, walletAddress);
+  localStorage.setItem(KEY_BAL, String(balance));
+  localStorage.setItem(KEY_TX, JSON.stringify(transactions));
+  localStorage.setItem(KEY_AUTO, autoSim ? "1" : "0");
+}
+
+function addTx(type, amount, toAddr=""){
+  const time = new Date().toLocaleString();
+  const tx = { type, amount, to: toAddr, time };
+  transactions.unshift(tx); // newest first
+  if(transactions.length > 1000) transactions.pop(); // cap size
+  saveAll();
+  renderTransactions();
+}
+
+function renderTransactions(){
+  txListEl.innerHTML = "";
+  if(transactions.length === 0){
+    txListEl.innerHTML = '<div class="tx">No transactions yet.</div>';
+    return;
+  }
+  for(const t of transactions){
+    const div = document.createElement("div");
+    div.className = "tx";
+    div.innerHTML = `<div><strong>${t.type.toUpperCase()}</strong> — ${t.amount} MVRS</div>
+                     <div class="meta">${t.time}${t.to ? " • To: " + t.to : ""}</div>`;
+    txListEl.appendChild(div);
+  }
+}
+
+// ---------- actions ----------
+function setAddress(){
+  const v = document.getElementById("setAddressInput").value.trim();
+  if(!v){ alert("Enter an address or paste one from Termux."); return; }
+  walletAddress = v;
+  localStorage.setItem(KEY_ADDR, walletAddress);
+  addrEl.textContent = walletAddress;
+  alert("Address updated locally.");
+}
+
+function sendCoins(){
+  const amt = Number(document.getElementById("sendAmount").value);
+  const to = document.getElementById("sendAddress").value.trim();
+  if(!to || !amt || amt <= 0){ alert("Enter valid amount and recipient."); return; }
+  if(amt > balance){ alert("Insufficient balance."); return; }
+  balance -= amt;
+  balEl.textContent = balance + " MVRS";
+  addTx("send", amt, to);
+  document.getElementById("sendAmount").value = "";
+  document.getElementById("sendAddress").value = "";
+  alert("Transaction recorded locally.");
+}
+
+function receiveCoins(){
+  const r = prompt("Enter received amount (whole number):");
+  const amt = Number(r);
+  if(!amt || amt <= 0){ alert("Invalid amount."); return; }
+  balance += amt;
+  balEl.textContent = balance + " MVRS";
+  addTx("receive", amt, walletAddress);
+  alert("Funds added locally.");
+}
+
+function simulateMine(){
+  // manual simulate
+  const amt = 50;
+  balance += amt;
+  balEl.textContent = balance + " MVRS";
+  addTx("mine", amt, walletAddress);
+  alert("Simulated mine +"+amt+" MVRS");
+}
+
+function toggleAutoSim(){
+  autoSim = autoToggleEl.checked;
+  saveAll();
+  if(autoSim){
+    startAutoSim();
+  } else {
+    stopAutoSim();
+  }
+}
+
+function startAutoSim(){
+  stopAutoSim();
+  const interval = Number(autoIntervalEl.value) || 5;
+  autoSimTimer = setInterval(()=> {
+    balance += 50;
+    balEl.textContent = balance + " MVRS";
+    addTx("mine", 50, walletAddress);
+  }, Math.max(1000, interval*1000));
+}
+
+function stopAutoSim(){
+  if(autoSimTimer) { clearInterval(autoSimTimer); autoSimTimer = null; }
+}
+
+// ---------- export / import ----------
+function exportWallet(){
+  const data = { address: walletAddress, balance, transactions };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (walletAddress || "mvrs_wallet") + "_export.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importWalletFile(e){
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(data.address) walletAddress = data.address;
+      if(typeof data.balance === "number") balance = data.balance;
+      if(Array.isArray(data.transactions)) transactions = data.transactions;
+      addrEl.textContent = walletAddress;
+      balEl.textContent = balance + " MVRS";
+      saveAll();
+      renderTransactions();
+      alert("Wallet imported.");
+    } catch(err){
+      alert("Invalid JSON file.");
+      console.error(err);
     }
+  };
+  reader.readAsText(f);
 }
 
-// Simulate mining reward
-function mineReward(amount) {
-    balance += amount;
-    document.getElementById('walletBalance').textContent = balance + ' MVRS';
-    addTransaction(amount, 'Mined');
+// reset
+function resetWallet(){
+  if(!confirm("Reset local wallet data? This clears local balance & history.")) return;
+  walletAddress = generateAddress();
+  balance = 0;
+  transactions = [];
+  addrEl.textContent = walletAddress;
+  balEl.textContent = balance + " MVRS";
+  saveAll();
+  renderTransactions();
 }
 
-// Send coins function
-function sendCoins() {
-    const amount = Number(document.getElementById('sendAmount').value);
-    const address = document.getElementById('sendAddress').value.trim();
-    if(amount <= 0 || !address) {
-        alert('Enter valid amount and address!');
-        return;
+// allow file import also via input change
+function importWalletFile(event){
+  if(!event.target.files || event.target.files.length === 0) return;
+  const file = event.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data.address) walletAddress = data.address;
+      if(typeof data.balance === "number") balance = data.balance;
+      if(Array.isArray(data.transactions)) transactions = data.transactions;
+      addrEl.textContent = walletAddress;
+      balEl.textContent = balance + " MVRS";
+      saveAll();
+      renderTransactions();
+      alert("Import successful");
+    } catch(err){
+      alert("Import failed: invalid file");
     }
-    if(amount > balance) {
-        alert('Insufficient balance!');
-        return;
-    }
-    balance -= amount;
-    document.getElementById('walletBalance').textContent = balance + ' MVRS';
-    addTransaction(amount, 'Sent', address);
-    document.getElementById('sendAmount').value = '';
-    document.getElementById('sendAddress').value = '';
+  }
+  reader.readAsText(file);
 }
 
-// Receive coins function
-function receiveCoins() {
-    const amount = prompt('Enter received amount:');
-    if(amount && Number(amount) > 0) {
-        balance += Number(amount);
-        document.getElementById('walletBalance').textContent = balance + ' MVRS';
-        addTransaction(Number(amount), 'Received');
-    }
-}
-
-// Example: simulate auto mining every 5 seconds for demo
-setInterval(() => mineReward(50), 5000);
+// initialize saved autoSim state
+(function init(){
+  const savedAuto = localStorage.getItem(KEY_AUTO);
+  if(savedAuto === "1"){
+    autoToggleEl.checked = true;
+    autoSim = true;
+    startAutoSim();
+  }
+  saveAll();
+})();
 </script>
 </body>
 </html>
