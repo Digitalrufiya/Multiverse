@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MultiVerse (MVRS) Wallet</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #1e1e2f;
+        color: #ffffff;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        background-color: #2e2e4f;
+        padding: 20px;
+    }
+    header img {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 10px;
+    }
+    main {
+        padding: 20px;
+    }
+    .wallet-info {
+        background-color: #2e2e4f;
+        padding: 15px;
+        border-radius: 10px;
+        display: inline-block;
+        margin-top: 20px;
+        min-width: 250px;
+    }
+    .wallet-info p {
+        margin: 5px 0;
+        font-size: 18px;
+    }
+    .buttons {
+        margin-top: 20px;
+    }
+    button {
+        padding: 10px 20px;
+        margin: 5px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #4caf50;
+        color: white;
+    }
+    button:hover {
+        background-color: #45a049;
+    }
+    .transactions {
+        margin-top: 30px;
+        text-align: left;
+        display: inline-block;
+        max-width: 500px;
+        width: 90%;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #555;
+        border-radius: 10px;
+        background-color: #2e2e4f;
+        padding: 10px;
+    }
+    .transactions h3 {
+        text-align: center;
+        margin-top: 0;
+    }
+    .transactions ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    .transactions li {
+        background-color: #3e3e6f;
+        margin: 5px 0;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    footer {
+        margin-top: 40px;
+        font-size: 14px;
+        color: #aaa;
+    }
+    input[type="number"], input[type="text"] {
+        padding: 8px;
+        margin: 5px;
+        border-radius: 5px;
+        border: none;
+        width: 150px;
+    }
+</style>
+</head>
+<body>
+<header>
+    <img src="https://ik.imagekit.io/ttbbg9ocv/ChatGPT%20Image%20Dec%2011,%202025,%2009_34_05%20PM.png" alt="MVRS Coin Logo">
+    <h1>MultiVerse (MVRS) Wallet</h1>
+    <p>Version 1.0</p>
+</header>
+
+<main>
+    <div class="wallet-info">
+        <p><strong>Wallet Address:</strong> <span id="walletAddress">MVRS123456</span></p>
+        <p><strong>Balance:</strong> <span id="walletBalance">0 MVRS</span></p>
+    </div>
+
+    <div class="buttons">
+        <input type="number" id="sendAmount" placeholder="Amount">
+        <input type="text" id="sendAddress" placeholder="Recipient Address">
+        <button onclick="sendCoins()">Send</button>
+        <button onclick="receiveCoins()">Receive</button>
+    </div>
+
+    <div class="transactions">
+        <h3>Transaction History</h3>
+        <ul id="transactionList">
+            <li>No transactions yet.</li>
+        </ul>
+    </div>
+
+    <div class="instructions" style="margin-top:30px;">
+        <h3>Instructions</h3>
+        <p>To mine MVRS coins, run your Termux node and use your wallet address above to receive mined coins.</p>
+        <p>Use the "send" command in Termux to transfer coins to other wallet addresses.</p>
+    </div>
+</main>
+
+<footer>
+    &copy; 2025 MultiVerse Blockchain
+</footer>
+
+<script>
+let balance = 0;
+let transactions = [];
+
+function addTransaction(amount, type, address = '') {
+    const timestamp = new Date().toLocaleString();
+    let tx = `${type}: ${amount} MVRS | ${timestamp}`;
+    if(address) tx += ` | Address: ${address}`;
+    transactions.unshift(tx); // newest first
+    renderTransactions();
+}
+
+function renderTransactions() {
+    const list = document.getElementById('transactionList');
+    list.innerHTML = '';
+    if(transactions.length === 0) {
+        list.innerHTML = '<li>No transactions yet.</li>';
+    } else {
+        transactions.forEach(tx => {
+            const li = document.createElement('li');
+            li.textContent = tx;
+            list.appendChild(li);
+        });
+    }
+}
+
+// Simulate mining reward
+function mineReward(amount) {
+    balance += amount;
+    document.getElementById('walletBalance').textContent = balance + ' MVRS';
+    addTransaction(amount, 'Mined');
+}
+
+// Send coins function
+function sendCoins() {
+    const amount = Number(document.getElementById('sendAmount').value);
+    const address = document.getElementById('sendAddress').value.trim();
+    if(amount <= 0 || !address) {
+        alert('Enter valid amount and address!');
+        return;
+    }
+    if(amount > balance) {
+        alert('Insufficient balance!');
+        return;
+    }
+    balance -= amount;
+    document.getElementById('walletBalance').textContent = balance + ' MVRS';
+    addTransaction(amount, 'Sent', address);
+    document.getElementById('sendAmount').value = '';
+    document.getElementById('sendAddress').value = '';
+}
+
+// Receive coins function
+function receiveCoins() {
+    const amount = prompt('Enter received amount:');
+    if(amount && Number(amount) > 0) {
+        balance += Number(amount);
+        document.getElementById('walletBalance').textContent = balance + ' MVRS';
+        addTransaction(Number(amount), 'Received');
+    }
+}
+
+// Example: simulate auto mining every 5 seconds for demo
+setInterval(() => mineReward(50), 5000);
+</script>
+</body>
+</html>
